@@ -92,6 +92,15 @@ class KNN:
         _X = X.reshape(-1, 1, X.shape[1])
         return np.abs(np.subtract(_X, self.train_X, dtype=np.float32)).sum(axis=2)
 
+    def _predict_labels(self, dists, pred_type):
+        num_test = dists.shape[0]
+        pred = np.zeros(num_test, pred_type)
+        for i in range(num_test):
+            dists_sort = dists[i].argsort()
+            unique, counts = np.unique(self.train_y[dists_sort][:self.k], return_counts=True)
+            pred[i] = unique[counts.argmax()]
+        return pred
+
     def predict_labels_binary(self, dists):
         '''
         Returns model predictions for binary classification case
@@ -103,13 +112,7 @@ class KNN:
         pred, np array of bool (num_test_samples) - binary predictions 
            for every test sample
         '''
-        num_test = dists.shape[0]
-        pred = np.zeros(num_test, np.bool)
-        for i in range(num_test):
-            dists_sort = dists[i].argsort()
-            unique, counts = np.unique(self.train_y[dists_sort][:self.k], return_counts=True)
-            pred[i] = unique[counts.argmax()]
-        return pred
+        return self._predict_labels(dists, np.bool)
 
     def predict_labels_multiclass(self, dists):
         '''
@@ -122,11 +125,4 @@ class KNN:
         pred, np array of int (num_test_samples) - predicted class index 
            for every test sample
         '''
-        num_test = dists.shape[0]
-        num_test = dists.shape[0]
-        pred = np.zeros(num_test, np.int)
-        for i in range(num_test):
-            # TODO: Implement choosing best class based on k
-            # nearest training samples
-            pass
-        return pred
+        return self._predict_labels(dists, np.int)
