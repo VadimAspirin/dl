@@ -120,6 +120,7 @@ def linear_softmax(X, W, target_index):
 
     print("--------------------")
     print(X)
+    print(X.T)
     print(W)
     print(grad)
     print(grad.T)
@@ -128,7 +129,11 @@ def linear_softmax(X, W, target_index):
     count_classes = W.shape[1]
     idx = list(range(count_classes)) * count_features
     idx = np.sort(idx).reshape(-1, count_features)
-    print(np.dot(grad[idx], X))
+    grad_t = grad.T
+    print(grad.T[idx])
+    #print(grad.T[idx][0])
+    print("----")
+    #print(np.dot(X.T, grad[idx][0]))
     print("--------------------")
 
     dW = np.dot(grad, X).T
