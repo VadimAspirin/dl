@@ -184,6 +184,15 @@ class LinearSoftmaxClassifier():
 
         # TODO Implement class prediction
         # Your final implementation shouldn't have any loops
-        raise Exception("Not implemented!")
+
+        # print(X.shape)
+        # print(self.W.shape)
+        # print(np.dot(X, self.W).shape)
+        # print(softmax(np.dot(X, self.W)).shape)
+        # print(np.argmax(softmax(np.dot(X, self.W)), axis=-1).shape)
+
+        y_pred = np.argmax(softmax(np.dot(X, self.W)), axis=-1)
+
+        #y_pred = np.max(softmax(np.dot(X, self.W)), axis=-1)
 
         return y_pred
