@@ -185,51 +185,44 @@ class ConvolutionalLayer:
         )
 
         self.B = Param(np.zeros(out_channels))
-
+        self.X = None
         self.padding = padding
 
 
     def forward(self, X):
         batch_size, height, width, channels = X.shape
-
         out_height = 0
         out_width = 0
         
         # TODO: Implement forward pass
         # Hint: setup variables that hold the result
         # and one x/y location at a time in the loop below
+        self.X = X.copy()
+        if self.padding:
+            zero_columns = np.zeros((batch_size, height, self.padding, channels))
+            self.X = np.append(self.X, zero_columns, axis=2)
+            self.X = np.append(zero_columns, self.X, axis=2)
+            width = width + self.padding * 2
+            zero_rows = np.zeros((batch_size, self.padding, width, channels))
+            self.X = np.append(self.X, zero_rows, axis=1)
+            self.X = np.append(zero_rows, self.X, axis=1)
+            batch_size, height, width, channels = self.X.shape
+
+
         out_height = height - self.filter_size + 1
         out_width = width - self.filter_size + 1
+        result = np.zeros([batch_size, out_height, out_width, self.out_channels])
+
         W = self.W.value.reshape(-1, self.out_channels)
-        result = np.array([])
 
         # It's ok to use loops for going over width and height
         # but try to avoid having any other loops
         for y in range(out_height):
             for x in range(out_width):
-                #print(x, y, self.filter_size)
-                #print(X[:, x:self.filter_size, y:self.filter_size, :])
-                #print(X[:, x:self.filter_size, y:self.filter_size, :].reshape(batch_size, -1))
+                X_slice = self.X[:, x:self.filter_size+x, y:self.filter_size+y, :].reshape(batch_size, -1)
+                result[:, x, y, :] = np.dot(X_slice, W) + self.B.value
 
-                window = X[:, x:self.filter_size, y:self.filter_size, :].reshape(batch_size, -1)
-                # print(window)
-                # print("-------------")
-                # print(W)
-                # print("-------------")
-                # print(np.dot(window, W))
-                # print("-------------")
-                # print(self.B.value)
-                # print("-------------")
-                # print(np.dot(window, W) + self.B.value)
-                # print((np.dot(window, W) + self.B.value).shape)
-
-                
-                result = np.append(result, np.dot(window, W) + self.B.value)
-
-
-
-
-        return result.reshape(batch_size, 1, 1, 1)
+        return result
 
 
     def backward(self, d_out):
@@ -238,7 +231,7 @@ class ConvolutionalLayer:
         # when you implemented FullyConnectedLayer
         # Just do it the same number of times and accumulate gradients
 
-        batch_size, height, width, channels = X.shape
+        batch_size, height, width, channels = self.X.shape
         _, out_height, out_width, out_channels = d_out.shape
 
         # TODO: Implement backward pass
@@ -246,15 +239,35 @@ class ConvolutionalLayer:
         # aggregate input gradient and fill them for every location
         # of the output
 
+        self.W.grad = np.zeros(self.W.value.shape)
+        d_input = np.zeros(self.X.shape)
+        self.B.grad = np.zeros(self.B.value.shape)
+
+        W = self.W.value.reshape(-1, self.out_channels)
+
         # Try to avoid having any other loops here too
         for y in range(out_height):
             for x in range(out_width):
                 # TODO: Implement backward pass for specific location
                 # Aggregate gradients for both the input and
                 # the parameters (W and B)
-                pass
+                X_slice = self.X[:, x:self.filter_size+x, y:self.filter_size+y, :].reshape(batch_size, -1)
+                W_grad = np.dot(X_slice.T, d_out[:, x, y, :])
+                W_grad = W_grad.reshape(self.filter_size, self.filter_size, channels, out_channels)
+                self.W.grad += W_grad
 
-        raise Exception("Not implemented!")
+                X_grad = np.dot(d_out[:, x, y, :], W.T)
+                X_grad = X_grad.reshape(batch_size, self.filter_size, self.filter_size, channels)
+                d_input[:, x:self.filter_size+x, y:self.filter_size+y, :] += X_grad
+
+                B_grad = np.dot(np.ones((1, batch_size)), d_out[:, x, y, :])
+                B_grad = B_grad.reshape(-1)
+                self.B.grad += B_grad
+
+        if self.padding:
+            d_input = d_input[:, self.padding:-self.padding, self.padding:-self.padding, :]
+
+        return d_input
 
     def params(self):
         return { 'W': self.W, 'B': self.B }
