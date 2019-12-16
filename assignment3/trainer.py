@@ -60,7 +60,6 @@ class Trainer:
         Computes accuracy on provided data using mini-batches
         '''
         indices = np.arange(X.shape[0])
-
         sections = np.arange(self.batch_size, X.shape[0], self.batch_size)
         batches_indices = np.array_split(indices, sections)
         
@@ -116,8 +115,8 @@ class Trainer:
             val_accuracy = self.compute_accuracy(self.dataset.val_X,
                                                  self.dataset.val_y)
 
-            print("Loss: %f, Train accuracy: %f, val accuracy: %f" % 
-                  (batch_losses[-1], train_accuracy, val_accuracy))
+            print("Epoch %i, Loss: %f, Train accuracy: %f, val accuracy: %f" %
+                  (epoch, batch_losses[-1], train_accuracy, val_accuracy))
 
             loss_history.append(ave_loss)
             train_acc_history.append(train_accuracy)

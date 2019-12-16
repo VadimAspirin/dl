@@ -162,7 +162,7 @@ class FullyConnectedLayer:
     def params(self):
         return {'W': self.W, 'B': self.B}
 
-    
+
 class ConvolutionalLayer:
     def __init__(self, in_channels, out_channels,
                  filter_size, padding):
@@ -209,8 +209,8 @@ class ConvolutionalLayer:
             batch_size, height, width, channels = self.X.shape
 
 
-        out_height = height - self.filter_size + 1
-        out_width = width - self.filter_size + 1
+        out_height = (height - self.filter_size) + 1
+        out_width = (width - self.filter_size) + 1
         result = np.zeros([batch_size, out_height, out_width, self.out_channels])
 
         W = self.W.value.reshape(-1, self.out_channels)
@@ -291,12 +291,36 @@ class MaxPoolingLayer:
         # TODO: Implement maxpool forward pass
         # Hint: Similarly to Conv layer, loop on
         # output x/y dimension
-        raise Exception("Not implemented!")
+        self.X = X.copy()
+        out_height = ((height - self.pool_size) // self.stride) + 1
+        out_width = ((width - self.pool_size) // self.stride) + 1
+        result = np.zeros([batch_size, out_height, out_width, channels])
+
+        for y in range(out_height):
+            for x in range(out_width):
+                result[:, x, y, :] = np.max(self.X[:, x:self.pool_size+x, y:self.pool_size+y, :], axis=(1,2))
+
+        return result
 
     def backward(self, d_out):
         # TODO: Implement maxpool backward pass
         batch_size, height, width, channels = self.X.shape
-        raise Exception("Not implemented!")
+        _, out_height, out_width, out_channels = d_out.shape
+        d_input = np.zeros(self.X.shape)
+
+        for y in range(out_height):
+            for x in range(out_width):
+                X_slice = self.X[:, x:self.pool_size+x, y:self.pool_size+y, :]
+                d_out_it = d_out[:, x, y, :].copy()
+
+                mask = np.where(X_slice == np.max(X_slice, axis=(1,2), keepdims=True), 1, 0)
+                count_max = np.count_nonzero(mask, axis=(1,2))
+                d_out_it = d_out_it / count_max
+
+                d_out_it = d_out_it.reshape(batch_size, 1, 1, out_channels)
+                d_input[:, x:self.pool_size+x, y:self.pool_size+y, :] += mask * d_out_it
+
+        return d_input
 
     def params(self):
         return {}
@@ -312,11 +336,13 @@ class Flattener:
         # TODO: Implement forward pass
         # Layer should return array with dimensions
         # [batch_size, hight*width*channels]
-        raise Exception("Not implemented!")
+        self.X_shape = X.shape
+        return X.reshape(batch_size, height * width * channels)
 
     def backward(self, d_out):
         # TODO: Implement backward pass
-        raise Exception("Not implemented!")
+        batch_size, height, width, channels = self.X_shape
+        return d_out.reshape(batch_size, height, width, channels)
 
     def params(self):
         # No params!
