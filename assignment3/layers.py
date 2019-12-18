@@ -197,15 +197,17 @@ class ConvolutionalLayer:
         # TODO: Implement forward pass
         # Hint: setup variables that hold the result
         # and one x/y location at a time in the loop below
+
         self.X = X.copy()
         if self.padding:
-            zero_columns = np.zeros((batch_size, height, self.padding, channels))
-            self.X = np.append(self.X, zero_columns, axis=2)
-            self.X = np.append(zero_columns, self.X, axis=2)
-            width = width + self.padding * 2
-            zero_rows = np.zeros((batch_size, self.padding, width, channels))
-            self.X = np.append(self.X, zero_rows, axis=1)
-            self.X = np.append(zero_rows, self.X, axis=1)
+            # zero_columns = np.zeros((batch_size, height, self.padding, channels))
+            # self.X = np.append(self.X, zero_columns, axis=2)
+            # self.X = np.append(zero_columns, self.X, axis=2)
+            # width = width + self.padding * 2
+            # zero_rows = np.zeros((batch_size, self.padding, width, channels))
+            # self.X = np.append(self.X, zero_rows, axis=1)
+            # self.X = np.append(zero_rows, self.X, axis=1)
+            self.X = np.pad(self.X, ((0,0),(self.padding,self.padding),(self.padding,self.padding),(0,0)))
             batch_size, height, width, channels = self.X.shape
 
 
@@ -315,7 +317,9 @@ class MaxPoolingLayer:
 
                 mask = np.where(X_slice == np.max(X_slice, axis=(1,2), keepdims=True), 1, 0)
                 count_max = np.count_nonzero(mask, axis=(1,2))
-                d_out_it = d_out_it / count_max
+                # d_out_it = d_out_it / count_max
+                # d_out_it = np.float64(d_out_it) / np.float64(count_max)
+                d_out_it = d_out_it.astype(np.float64) / count_max.astype(np.float64)
 
                 d_out_it = d_out_it.reshape(batch_size, 1, 1, out_channels)
                 d_input[:, x:self.pool_size+x, y:self.pool_size+y, :] += mask * d_out_it
